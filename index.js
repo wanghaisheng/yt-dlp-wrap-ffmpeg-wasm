@@ -6,11 +6,12 @@ const os = require("os");
 const Readable = require("stream").Readable;
 const spawn = require("child_process").spawn;
 
+const progressRegex = /\[download\] *(.*) of (.*) at (.*) ETA (.*) */;
+
 class YoutubeDlWrap
 {
     constructor(binaryPath)
     {
-        this.progressRegex = /\[download\] *(.*) of (.*) at (.*) ETA (.*) */;
         this.setBinaryPath(binaryPath ? binaryPath : "youtube-dl");
     }
 
@@ -18,33 +19,30 @@ class YoutubeDlWrap
     {
         return this.binaryPath;
     }
+
     setBinaryPath(binaryPath)
     {
         this.binaryPath = binaryPath;
     }
 
-    static downloadLatestYoutubeDl(filePath, platform = os.platform())
+
+    static downloadFile(fileURL, filePath)
     {
         return new Promise(async (resolve, reject) =>
         {
-            let fileName = platform == "win32" ? "youtube-dl.exe" : "youtube-dl";        
-            if(!filePath)
-                filePath = "./" + fileName;
-            let binaryURL = "https://youtube-dl.org/downloads/latest/" + fileName;
-
-            while(binaryURL)
+            while(fileURL)
             {
                 let response = await new Promise((resolveRequest, rejectRequest) => 
-                    https.get(binaryURL, (httpResponse) => {
-                        httpResponse.on("error", (e) => rejectRequest(e));
+                    https.get(fileURL, (httpResponse) => {
+                        httpResponse.on("error", (e) => reject(e));
                         resolveRequest(httpResponse);
                 }));
 
                 if(response.headers.location)
-                    binaryURL = response.headers.location;
+                    fileURL = response.headers.location;
                 else
                 {
-                    binaryURL = null
+                    fileURL = null
                     response.pipe(fs.createWriteStream(filePath));
                     response.on("error", (e) => reject(e));
                     response.on("end", () => response.statusCode == 200 ? resolve(response) : reject(response));
@@ -53,11 +51,158 @@ class YoutubeDlWrap
         });
     }
 
+    static async downloadFromWebsite(filePath, platform = os.platform())
+    {
+        let fileName = platform == "win32" ? "youtube-dl.exe" : "youtube-dl";        
+        if(!filePath)
+            filePath = "./" + fileName;
+        let fileURL = "https://youtube-dl.org/downloads/latest/" + fileName;
+        return await YoutubeDlWrap.downloadFile(fileURL, filePath);
+    }
+
+
+    static getGithubReleases(page = 1, perPage = 1)
+    {
+        return new Promise( (resolve, reject) =>
+        {
+            const apiURL = "https://api.github.com/repos/ytdl-org/youtube-dl/releases?page=" + page + "&per_page=" + perPage;
+            https.get(apiURL, { headers: { "User-Agent": "node" } }, (response) =>
+            {
+                let resonseString = "";
+                response.setEncoding("utf8");
+                response.on("data", (body) => resonseString += body);
+                response.on("error", (e) => reject(e));
+                response.on("end", () => response.statusCode == 200 ? resolve(JSON.parse(resonseString)) : reject(response));
+            });
+        });
+    }
+
+    static async downloadFromGithub(filePath, version, platform = os.platform())
+    {
+        let fileName = platform == "win32" ? "youtube-dl.exe" : "youtube-dl";
+        if(!version)
+            version = (await YoutubeDlWrap.getGithubReleases(1, 1))[0].tag_name;
+        if(!filePath)
+            filePath = "./" + fileName;
+        let fileURL = "https://github.com/ytdl-org/youtube-dl/releases/download/" + version + "/" + fileName;
+        return await YoutubeDlWrap.downloadFile(fileURL, filePath);
+    }
+
+
+    setDefaultOptions(options)
+    {
+	    if(!options.maxBuffer)
+            options.maxBuffer = 1024 * 1024 * 1024;
+        return options;
+    }
+
+    exec(youtubeDlArguments = [], options = {})
+    {
+        options = this.setDefaultOptions(options);
+        const execEventEmitter = new EventEmitter();
+        const youtubeDlProcess = spawn(this.binaryPath, youtubeDlArguments, options);
+        execEventEmitter.youtubeDlProcess = youtubeDlProcess;
+
+        let stderrData = "";
+        let processError;
+        youtubeDlProcess.stdout.on("data", (data) => YoutubeDlWrap.emitYoutubeDlEvents(data.toString(), execEventEmitter));
+        youtubeDlProcess.stderr.on("data", (data) => stderrData += data.toString());
+        youtubeDlProcess.on("error", (error) => processError = error);
+
+        youtubeDlProcess.on("close", (code) => {
+            if(code === 0)
+                execEventEmitter.emit("close", code);
+            else
+                execEventEmitter.emit("error", YoutubeDlWrap.createError(code, processError, stderrData));
+        });
+        return execEventEmitter;
+    }
+
+    execPromise(youtubeDlArguments = [], options = {})
+    {
+        return new Promise( (resolve, reject) => 
+        {
+            options = this.setDefaultOptions(options);
+            execFile(this.binaryPath, youtubeDlArguments, options, (error, stdout, stderr) =>
+            {
+                if(error)
+                    reject(YoutubeDlWrap.createError(error, null, stderr));
+                resolve(stdout);
+            });
+        });
+    }
+
+    execStream(youtubeDlArguments = [], options = {})
+    {
+        const readStream = new Readable({ read(size){} });
+        options = this.setDefaultOptions(options);
+        youtubeDlArguments = youtubeDlArguments.concat(["-o", "-"]);
+        const youtubeDlProcess = spawn(this.binaryPath, youtubeDlArguments, options);
+        readStream.youtubeDlProcess = youtubeDlProcess;
+
+        let stderrData = "";
+        let processError;
+        youtubeDlProcess.stdout.on("data", (data) => readStream.push(data));
+        youtubeDlProcess.stderr.on("data", (data) =>   
+        {
+            let stringData = data.toString();
+            YoutubeDlWrap.emitYoutubeDlEvents(stringData, readStream);
+            stderrData += stringData
+        });
+        youtubeDlProcess.on("error", (error) => processError = error);
+
+        youtubeDlProcess.on("close", (code) =>
+        {
+            if(code != 0)
+                readStream.destroy(YoutubeDlWrap.createError(code, processError, stderrData));
+            else
+                readStream.destroy();
+        });
+        return readStream;
+    }
+	
+	static createError(code, processError, stderrData)
+	{
+		let errorMessage = "\nError code: " + code
+		if(processError)
+			errorMessage += "\n\nProcess error:\n" + processError
+		if(stderrData)
+			errorMessage += "\n\nStderr:\n" + stderrData
+		return new Error(errorMessage);
+	}
+
+    static emitYoutubeDlEvents(stringData, emitter)
+    {
+        let outputLines = stringData.split(/\r|\n/g).filter(Boolean);
+        for(let outputLine of outputLines)
+        {
+            if(outputLine[0] == "[")
+            {
+                let progressMatch = outputLine.match(progressRegex);
+                if(progressMatch?.length >= 5)
+                {
+                    let progressObject = {};
+                    progressObject.percent = parseFloat(progressMatch[1].replace("%", ""));
+                    progressObject.totalSize = progressMatch[2].replace("~", "");
+                    progressObject.currentSpeed = progressMatch[3];
+                    progressObject.eta = progressMatch[4];
+                    emitter.emit("progress", progressObject);
+                }
+
+                let eventType = outputLine.split(" ")[0].replace("[", "").replace("]", "");
+                let eventData = outputLine.substring(outputLine.indexOf(" "), outputLine.length);
+                emitter.emit("youtubeDlEvent", eventType, eventData);
+            }
+        }
+    }
+
+
     async getExtractors()
     {
         let youtubeDlStdout = await this.execPromise(["--list-extractors"]);
         return youtubeDlStdout.split("\n");         
     }
+
     async getExtractorDescriptions()
     {
         let youtubeDlStdout = await this.execPromise(["--extractor-descriptions"]);
@@ -69,11 +214,13 @@ class YoutubeDlWrap
         let youtubeDlStdout = await this.execPromise(["--help"]);
         return youtubeDlStdout;         
     }
+
     async getUserAgent()
     {
         let youtubeDlStdout = await this.execPromise(["--dump-user-agent"]);
         return youtubeDlStdout;         
     }
+    
     async getVersion()
     {
         let youtubeDlStdout = await this.execPromise(["--version"]);
@@ -95,117 +242,6 @@ class YoutubeDlWrap
             return JSON.parse("[" + youtubeDlStdout.replace(/\n/g, ",").slice(0, -1)  + "]"); 
         }
     }
-
-    setDefaultOptions(options)
-    {
-	    if(!options.maxBuffer)
-            options.maxBuffer = 1024 * 1024 * 1024;
-        return options;
-    }
-
-    exec(youtubeDlArguments = [], options = {})
-    {
-        options = this.setDefaultOptions(options);
-        const execEventEmitter = new EventEmitter();
-        const youtubeDlProcess = spawn(this.binaryPath, youtubeDlArguments, options);
-
-        youtubeDlProcess.stdout.on("data", (data) =>
-        {
-            let stringData = data.toString();
-            let parsedProgress = this.parseProgress(stringData);
-            if(parsedProgress)
-                execEventEmitter.emit("progress", parsedProgress);
-
-            execEventEmitter.emit("stdout", stringData);
-        });
-
-        let stderrData = "";
-        youtubeDlProcess.stderr.on("data", (data) => 
-        {
-            let stringData = data.toString();
-            stderrData += stringData;
-            execEventEmitter.emit("stderr", stringData);
-        });
-
-        let processError = "";
-        youtubeDlProcess.on("error", (error) => {
-            processError = error;
-        });
-        youtubeDlProcess.on("close", (code) => {
-            if(code === 0)
-                execEventEmitter.emit("close", code);
-            else
-                execEventEmitter.emit("error", code, processError, stderrData);
-        });
-
-        return execEventEmitter;
-    }
-
-    execPromise(youtubeDlArguments = [], options = {})
-    {
-        return new Promise( (resolve, reject) => 
-        {
-            options = this.setDefaultOptions(options);
-            execFile(this.binaryPath, youtubeDlArguments, options, (error, stdout, stderr) =>
-            {
-                if(error)
-                    reject({processError: error, stderr: stderr});
-                resolve(stdout);
-            });
-        });
-    }
-
-    execStream(youtubeDlArguments = [], options = {})
-    {
-        const readStream = new Readable({ read(size){} });
-        options = this.setDefaultOptions(options);
-        youtubeDlArguments = youtubeDlArguments.concat(["-o", "-"]);
-        const youtubeDlProcess = spawn(this.binaryPath, youtubeDlArguments, options);
-
-        let processError = "";
-        let stderrData = "";
-        youtubeDlProcess.stdout.on("data", (data) => readStream.push(data));
-        youtubeDlProcess.stderr.on("data", (data) => 
-        {
-            let stringData = data.toString();
-            let parsedProgress = this.parseProgress(stringData);
-            if(parsedProgress)
-                readStream.emit("progress", parsedProgress);
-            stderrData += stringData
-            readStream.emit("stderr", stringData);
-        });
-        youtubeDlProcess.on("error", (error) => processError = error );
-        youtubeDlProcess.on("close", (code) =>
-        {
-            if(code != 0)
-            {
-                let errorMessage = "Error code: " + code
-                if(processError)
-                    errorMessage += "\n\nProcess error:\n" + processError
-                if(stderrData)
-                    errorMessage += "\n\nStderr:\n" + stderrData
-                readStream.destroy(new Error(errorMessage));
-            }
-            else
-                readStream.destroy();
-        });
-        return readStream;
-    }
-
-    parseProgress(progressLine)
-    {
-        let progressMatch = progressLine.match(this.progressRegex);
-        if(progressMatch == null)
-            return null;
-        
-        let progressObject = {};
-        progressObject.percent = parseFloat(progressMatch[1].replace("%", ""));
-        progressObject.totalSize = progressMatch[2].replace("~", "");
-        progressObject.currentSpeed = progressMatch[3];
-        progressObject.eta = progressMatch[4];
-        return progressObject;
-    }
-
 }
 
 module.exports = YoutubeDlWrap;

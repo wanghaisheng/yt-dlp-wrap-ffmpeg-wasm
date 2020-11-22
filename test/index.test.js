@@ -5,73 +5,85 @@ const os = require("os");
 const YoutubeDlWrap = require("..");
 const youtubeDlWrap = new YoutubeDlWrap();
 
+const testVideoPath = "test/testVideo.mp4";
+const testVideoId = "C0DPdy98e4c";
+const testVideoURL = "https://www.youtube.com/watch?v=" + testVideoId;
+
 const isValidVersion = (version) => !isNaN( Date.parse( version.substring(0, 10).replace(/\./g, "-") ) )
 
-
-describe("downloading youtube-dl binary", function()
+const checkFileDownload = function()
 {
-    it("should create a file", async function()
-    {
-        await YoutubeDlWrap.downloadLatestYoutubeDl();
-        let fileName = os.platform() == "win32" ? "youtube-dl.exe" : "youtube-dl";
-        assert(fs.existsSync("./" + fileName));
-        const stats = fs.statSync("./" + fileName);
-        fs.unlinkSync("./" + fileName);
-        assert(stats.size > 0);
-    });
-});
+    let fileName = os.platform() == "win32" ? "youtube-dl.exe" : "youtube-dl";
+    assert(fs.existsSync("./" + fileName));
+    const stats = fs.statSync("./" + fileName);
+    fs.unlinkSync("./" + fileName);
+    assert(stats.size > 0);
+}
 
-describe("event emitter function", function()
+const checkEventEmitter = function(youtubeDlEventEmitter)
 {
-    it("should download a video", function(done)
+    return new Promise((resolve, reject) =>
     {
-        let youtubeDlEventEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v=C0DPdy98e4c",
-            "-f", "worst", "-o", "test/testVideo.mp4"]);
         let progressDefined = true;
         youtubeDlEventEmitter.on("progress", (progressObject) => 
         {
             if(progressObject.percent == undefined      || progressObject.totalSize == undefined ||
                progressObject.currentSpeed == undefined || progressObject.eta == undefined )
                progressDefined = false;
-
         });
-        youtubeDlEventEmitter.on("close", (code) => 
+
+        let youtubeDlEventFound = false;
+        youtubeDlEventEmitter.on("youtubeDlEvent", (eventType, eventData) => 
         {
-            assert(fs.existsSync("test/testVideo.mp4"));
-            const stats = fs.statSync("test/testVideo.mp4");
-            fs.unlinkSync("test/testVideo.mp4");
+            if(eventType == "youtube" && eventData.includes(testVideoId))
+                youtubeDlEventFound = true;
+        });
+
+        youtubeDlEventEmitter.on("error", (error) => reject(error));
+        youtubeDlEventEmitter.on("close", () => 
+        {
+            assert(fs.existsSync(testVideoPath));
+            const stats = fs.statSync(testVideoPath);
+            fs.unlinkSync(testVideoPath);
             assert.strictEqual(stats.size, 552999);
             assert(progressDefined);
-            assert.strictEqual(code, 0);
-            done();
+            assert(youtubeDlEventFound);
+            resolve();
         });
+    });
+}
+
+describe("downloading youtube-dl binary", function()
+{
+    it("should download from github", async function()
+    {
+        await YoutubeDlWrap.downloadFromGithub();
+        checkFileDownload();
+    });
+
+    it("should download from youtube-dl website", async function()
+    {
+        await YoutubeDlWrap.downloadFromWebsite();
+        checkFileDownload();
+    });
+});
+
+describe("event emitter function", function()
+{
+    it("should download a video", async function()
+    {
+        let youtubeDlEventEmitter = youtubeDlWrap.exec([testVideoURL, "-f", "worst", "-o", "test/testVideo.mp4"]);
+        await checkEventEmitter(youtubeDlEventEmitter);
     });    
 });
 
 describe("stream function", function()
 {
-    it("should download a video", function(done)
+    it("should download a video", async function()
     {
-        let progressDefined = true;
-        let stdoutReadstream = youtubeDlWrap.execStream(["https://www.youtube.com/watch?v=C0DPdy98e4c",
-            "-f", "worst"]);
-        stdoutReadstream.pipe(fs.createWriteStream("test/testVideoStream.mp4"));
-        stdoutReadstream.on("progress", (progressObject) => 
-        {
-            if(progressObject.percent == undefined      || progressObject.totalSize == undefined ||
-               progressObject.currentSpeed == undefined || progressObject.eta == undefined )
-               progressDefined = false;
-
-        });
-        stdoutReadstream.on("close", () => 
-        {
-            assert(fs.existsSync("test/testVideoStream.mp4"));
-            const stats = fs.statSync("test/testVideoStream.mp4");
-            fs.unlinkSync("test/testVideoStream.mp4");
-            assert.strictEqual(stats.size, 552999);
-            assert(progressDefined);
-            done();
-        });
+        let readableStream = youtubeDlWrap.execStream([testVideoURL, "-f", "worst"]);
+        readableStream.pipe(fs.createWriteStream(testVideoPath));
+        await checkEventEmitter(readableStream);
     });    
 });
 

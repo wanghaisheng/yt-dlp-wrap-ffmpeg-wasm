@@ -18,9 +18,15 @@ Provide it yourself or use some of the following functions to download the binar
 ```javascript
 const YoutubeDlWrap = require("youtube-dl-wrap");
 
-//Downloads the latest youtube-dl binary for the given platform to the provided path.
-//By default the path will be "./youtube-dl" and platform will be os.platform().
-await YoutubeDlWrap.downloadLatestYoutubeDl("path/to/youtube-dl/binary", "win32");
+//Get the data from the github releases API. In this case get page 1 with a maximum of 5 items.
+let githubReleasesData = await YoutubeDlWrap.getGithubReleases(1, 5);
+
+//Download the youtube-dl binary for the given version and platform to the provided path.
+//By default the latest version will be downloaded to "./youtube-dl" and platform = os.platform().
+await YoutubeDlWrap.downloadFromGithub("path/to/youtube-dl/binary", "2020.06.16.1", "win32");
+
+//Same as above but always downloads the latest version from the youtube-dl website.
+await YoutubeDlWrap.downloadFromWebsite("path/to/youtube-dl/binary", "win32");
 
 //Init an instance with a given binary path.
 //If none is provided "youtube-dl" will be used as command.
@@ -37,24 +43,27 @@ const YoutubeDlWrap = require("youtube-dl-wrap");
 const youtubeDlWrap = new YoutubeDlWrap("path/to/youtube-dl/binary");
 
 //Execute and return an EventEmitter
-youtubeDlWrap.exec(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+let youtubeDlEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     "-f", "best", "-o", "output.mp4"])
   .on("progress", (progress) => 
     console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
-  .on("error", (exitCode, processError, stderr) => 
-    console.error("An error occured", exitCode, processError, stderr))
-  .on("close", () => console.log("All done"));
+//Exposes all youtube-dl events, for example:
+//[download] Destination: output.mp4 -> eventType = download and eventData = Destination: output.mp4
+  .on("youtubeDlEvent", (eventType, eventData) => console.log(eventType, eventData));
+  .on("error", (error) => console.error(error))
+  .on("close", () => console.log("all done"));
+
+//Exposes the spawned child process
+youtubeDlEmitter.youtubeDlProcess
+
+
+//Execute and return a Readable Stream. The emitted events are the same as above.
+let readableStream = youtubeDlWrap.execStream(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    "-f", "best"])
 
 //Execute and return a Promise
 await youtubeDlWrap.execPromise(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     "-f", "best", "-o", "output.mp4"]);
-
-//Execute and return a Readable Stream
-let readStream = youtubeDlWrap.execStream(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-    "-f", "best"])
-  .on("progress", (progress) => 
-    console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta));  
-
 
 //Get the --dump-json metadata as object
 let metadata = await youtubeDlWrap.getVideoInfo("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
