@@ -179,7 +179,7 @@ class YoutubeDlWrap
             if(outputLine[0] == "[")
             {
                 let progressMatch = outputLine.match(progressRegex);
-                if(progressMatch?.length >= 5)
+                if(progressMatch && progressMatch.length >= 5)
                 {
                     let progressObject = {};
                     progressObject.percent = parseFloat(progressMatch[1].replace("%", ""));
