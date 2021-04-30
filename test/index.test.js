@@ -68,82 +68,89 @@ describe("downloading youtube-dl binary", function()
     });
 });
 
-describe("event emitter function", function()
+describe("download video functions", function()
 {
-    it("should download a video", async function()
+    it("should download a video via EventEmitter", async function()
     {
         let youtubeDlEventEmitter = youtubeDlWrap.exec([testVideoURL, "-f", "worst", "-o", "test/testVideo.mp4"]);
         await checkEventEmitter(youtubeDlEventEmitter);
-    });    
-});
+    });
 
-describe("stream function", function()
-{
-    it("should download a video", async function()
+    it("should download a video via Readable Stream", async function()
     {
         let readableStream = youtubeDlWrap.execStream([testVideoURL, "-f", "worst"]);
         readableStream.pipe(fs.createWriteStream(testVideoPath));
         await checkEventEmitter(readableStream);
-    });    
+    });
 });
 
-describe("promise functions", function()
+describe("AbortController functions", function()
 {
-    describe("video Info", function ()
+    it("abort the EventEmitter process", async function()
     {
-        it("should have title Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film", async function()
-        {
-            let videoInfo = await youtubeDlWrap.getVideoInfo("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
-            assert.strictEqual(videoInfo.title, "Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film");
-        });
+        let controller = new AbortController();
+        let youtubeDlEventEmitter = youtubeDlWrap.exec([testVideoURL, "-f", "worst", "-o", "test/testVideo.mp4"], {}, controller.signal);
+        controller.abort();
+        assert(youtubeDlEventEmitter.youtubeDlProcess.killed);
     });
 
-    describe("version", function()
+    it("abort the Readable Stream process", async function()
     {
-        it("should start with a date", async function()
-        {
-            let versionString = await youtubeDlWrap.getVersion();
-            assert(isValidVersion(versionString));
-        });
+        let controller = new AbortController();
+        let readableStream = youtubeDlWrap.execStream([testVideoURL, "-f", "worst", "-o", "test/testVideo.mp4"], {}, controller.signal);
+        controller.abort();
+        assert(readableStream.youtubeDlProcess.killed);
     });
 
-    describe("user agent", function()
+    it("abort the Promise process", async function()
     {
-        it("should be a string with at least 10 characters", async function()
-        {
-            let userAgentString = await youtubeDlWrap.getUserAgent();
-            assert.strictEqual(typeof userAgentString, "string");
-            assert(userAgentString.length >= 10);
-        });
+        let controller = new AbortController();
+        let execPromise = youtubeDlWrap.execPromise([testVideoURL, "-f", "worst", "-o", "test/testVideo.mp4"], {}, controller.signal);
+        controller.abort();
+        assert(execPromise.youtubeDlProcess.killed);
     });
-    
-    describe("help", function()
+});
+
+
+describe("utility functions", function()
+{
+    it("video Info should have title Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film", async function()
     {
-        it("should include explanation for version setting", async function()
-        {
-            let helpString = await youtubeDlWrap.getHelp();
-            assert.strictEqual(typeof helpString, "string");
-            assert(helpString.includes("--version"));
-        });
+        let videoInfo = await youtubeDlWrap.getVideoInfo("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
+        assert.strictEqual(videoInfo.title, "Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film");
     });
 
-    describe("extractor list", function()
+    it("version should start with a date", async function()
     {
-        it("should include youtube", async function()
-        {
-            let extractorList = await youtubeDlWrap.getExtractors();
-            assert(Array.isArray(extractorList));
-            assert(extractorList.includes("youtube"));
-        });
+        let versionString = await youtubeDlWrap.getVersion();
+        assert(isValidVersion(versionString));
     });
 
-    describe("extractor description list", function()
+    it("user agent should be a string with at least 10 characters", async function()
     {
-        it("should include YouTube.com playlists", async function()
-        {
-            let extractorList = await youtubeDlWrap.getExtractorDescriptions();
-            assert(Array.isArray(extractorList));
-            assert(extractorList.includes("YouTube.com playlists"));
-        });
+        let userAgentString = await youtubeDlWrap.getUserAgent();
+        assert.strictEqual(typeof userAgentString, "string");
+        assert(userAgentString.length >= 10);
+    });
+
+    it("help should include explanation for version setting", async function()
+    {
+        let helpString = await youtubeDlWrap.getHelp();
+        assert.strictEqual(typeof helpString, "string");
+        assert(helpString.includes("--version"));
+    });
+
+    it("extractor list should include youtube", async function()
+    {
+        let extractorList = await youtubeDlWrap.getExtractors();
+        assert(Array.isArray(extractorList));
+        assert(extractorList.includes("youtube"));
+    });
+
+    it("extractor description list should include YouTube.com playlists", async function()
+    {
+        let extractorList = await youtubeDlWrap.getExtractorDescriptions();
+        assert(Array.isArray(extractorList));
+        assert(extractorList.includes("YouTube.com playlists"));
     });
 });

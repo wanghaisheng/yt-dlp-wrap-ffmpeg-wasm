@@ -10,9 +10,10 @@ A simple node.js wrapper for [youtube-dl](https://github.com/ytdl-org/youtube-dl
 * Progress events
 * Utility functions
 
-## Usage
+## Installation
 
-Youtube-dl will not be automatically downloaded.\
+You can install youtube-dl-wrap via npm (`npm i youtube-dl-wrap`).  
+Youtube-dl itself will not be automatically downloaded.  
 Provide it yourself or use some of the following functions to download the binary.
 
 ```javascript
@@ -35,53 +36,86 @@ const youtubeDlWrap = new YoutubeDlWrap("path/to/youtube-dl/binary");
 youtubeDlWrap.setBinaryPath("path/to/another/youtube-dl/binary");
 ```
 
+## Usage
 
-To interface with youtube-dl the following methods can be used.
+### EventEmitter
+
+Excecute youtube-dl and returns an [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter).  
+The `youtubeDlEvent` event will expose all youtube-dl events, for example:  
+The log message `[download] Destination: output.mp4` will emit the event type `download` and the event data `Destination: output.mp4`.  
+`youtubeDlEmitter.youtubeDlProcess` exposes the spawned youtube-dl process.
 
 ```javascript
 const YoutubeDlWrap = require("youtube-dl-wrap");
 const youtubeDlWrap = new YoutubeDlWrap("path/to/youtube-dl/binary");
 
-//Execute and return an EventEmitter
-let youtubeDlEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+let youtubeDlEventEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     "-f", "best", "-o", "output.mp4"])
   .on("progress", (progress) => 
     console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
-//Exposes all youtube-dl events, for example:
-//[download] Destination: output.mp4 -> eventType = download and eventData = Destination: output.mp4
   .on("youtubeDlEvent", (eventType, eventData) => console.log(eventType, eventData));
   .on("error", (error) => console.error(error))
   .on("close", () => console.log("all done"));
 
-//Exposes the spawned child process
-youtubeDlEmitter.youtubeDlProcess
+console.log(youtubeDlEventEmitter.youtubeDlProcess.pid);
+```
 
+### Readable Stream
 
-//Execute and return a Readable Stream. The emitted events are the same as above.
+Excecute youtube-dl and returns an [Readable Stream](https://nodejs.org/api/stream.html#stream_class_stream_readable).  
+The interface works just like the [EventEmitter](#EventEmitter).
+
+```javascript
 let readableStream = youtubeDlWrap.execStream(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-    "-f", "best"])
+    "-f", "best[ext=mp4]"])
+readableStream.pipe(fs.createWriteStream("test.mp4"));
+```
 
-//Execute and return a Promise
-await youtubeDlWrap.execPromise(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+### Promise
+
+Excecute youtube-dl and returns an [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise).  
+
+```javascript
+let stdout = await youtubeDlWrap.execPromise(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
     "-f", "best", "-o", "output.mp4"]);
+console.log(stdout);
+```
 
-//Get the --dump-json metadata as object
+### Options and Cancellation
+
+Additionally you can set the options of the spawned process and abort the process.  
+The abortion of the spawned process is handled by passing the signal of an [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController).
+
+```javascript
+let controller = new AbortController();
+let youtubeDlEventEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    "-f", "best", "-o", "output.mp4"], {shell:true, detached:true}, controller.signal);
+
+setTimeout(() => 
+{
+    controller.abort();
+    console.log(youtubeDlEventEmitter.youtubeDlProcess.killed);
+}, 500);
+```
+
+### Metadata
+
+Returns the youtube-dl `--dump-json` metadata as an object.
+
+```javascript
 let metadata = await youtubeDlWrap.getVideoInfo("https://www.youtube.com/watch?v=aqz-KE-bpKQ");
+console.log(metadata.title);
+```
 
+### Utility functions
 
-//Get the version
+Just a few utility functions to get informations.
+
+```javascript
 let version = await youtubeDlWrap.getVersion();
-
-//Get the user agent
 let userAgent = await youtubeDlWrap.getUserAgent();
-
-//Get the help output
 let help = await youtubeDlWrap.getHelp();
-
-//Get the extractor list
 let extractors = await youtubeDlWrap.getExtractors();
-
-//Get the extractor description list
 let extractorDescriptions = await youtubeDlWrap.getExtractorDescriptions();
 ```
 

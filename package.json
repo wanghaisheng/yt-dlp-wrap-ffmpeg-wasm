@@ -4,7 +4,8 @@
   "description": "A simple node.js wrapper for youtube-dl.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --timeout 300000"
+    "test": "mocha --timeout 300000",
+    "testDebug": "mocha --inspect-brk --timeout 300000"
   },
   "author": "ghjbnm",
   "repository": {
@@ -19,6 +20,6 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "mocha": "^8.2.1"
+    "mocha": "^8.3.2"
   }
 }
