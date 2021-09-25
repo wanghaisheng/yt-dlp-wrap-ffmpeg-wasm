@@ -6,7 +6,7 @@ const os = require("os");
 const Readable = require("stream").Readable;
 const spawn = require("child_process").spawn;
 
-const progressRegex = /\[download\] *(.*) of (.*) at (.*) ETA (.*) */;
+const progressRegex = /\[download\] *(.*) of ([^ ]*)(:? *at *([^ ]*))?(:? *ETA *([^ ]*))?/;
 
 class YoutubeDlWrap
 {
@@ -238,13 +238,13 @@ class YoutubeDlWrap
             if(outputLine[0] == "[")
             {
                 let progressMatch = outputLine.match(progressRegex);
-                if(progressMatch && progressMatch.length >= 5)
+                if(progressMatch)
                 {
                     let progressObject = {};
                     progressObject.percent = parseFloat(progressMatch[1].replace("%", ""));
                     progressObject.totalSize = progressMatch[2].replace("~", "");
-                    progressObject.currentSpeed = progressMatch[3];
-                    progressObject.eta = progressMatch[4];
+                    progressObject.currentSpeed = progressMatch[4];
+                    progressObject.eta = progressMatch[6];
                     emitter.emit("progress", progressObject);
                 }
 

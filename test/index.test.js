@@ -24,12 +24,12 @@ const checkEventEmitter = function(youtubeDlEventEmitter)
 {
     return new Promise((resolve, reject) =>
     {
-        let progressDefined = true;
+        let progressDefined = false;
         youtubeDlEventEmitter.on("progress", (progressObject) => 
         {
-            if(progressObject.percent == undefined      || progressObject.totalSize == undefined ||
-               progressObject.currentSpeed == undefined || progressObject.eta == undefined )
-               progressDefined = false;
+            if(progressObject.percent != undefined      || progressObject.totalSize != undefined ||
+               progressObject.currentSpeed != undefined || progressObject.eta != undefined )
+               progressDefined = true;
         });
 
         let youtubeDlEventFound = false;
@@ -45,7 +45,7 @@ const checkEventEmitter = function(youtubeDlEventEmitter)
             assert(fs.existsSync(testVideoPath));
             const stats = fs.statSync(testVideoPath);
             fs.unlinkSync(testVideoPath);
-            assert.strictEqual(stats.size, 552999);
+            assert.strictEqual(stats.size, 514316);
             assert(progressDefined);
             assert(youtubeDlEventFound);
             resolve();
