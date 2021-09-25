@@ -1,6 +1,6 @@
 {
   "name": "youtube-dl-wrap",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A simple node.js wrapper for youtube-dl.",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,6 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "mocha": "^8.3.2"
+    "mocha": "^9.1.2"
   }
 }
