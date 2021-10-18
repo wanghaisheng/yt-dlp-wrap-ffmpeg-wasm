@@ -53,7 +53,7 @@ let youtubeDlEventEmitter = youtubeDlWrap.exec(["https://www.youtube.com/watch?v
     "-f", "best", "-o", "output.mp4"])
   .on("progress", (progress) => 
     console.log(progress.percent, progress.totalSize, progress.currentSpeed, progress.eta))
-  .on("youtubeDlEvent", (eventType, eventData) => console.log(eventType, eventData));
+  .on("youtubeDlEvent", (eventType, eventData) => console.log(eventType, eventData))
   .on("error", (error) => console.error(error))
   .on("close", () => console.log("all done"));
 
