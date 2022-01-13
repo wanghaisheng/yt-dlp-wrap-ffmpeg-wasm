@@ -10,7 +10,7 @@
     "author": "ghjbnm",
     "repository": {
         "type": "git",
-        "url": "https://github.com/ghjbnm/youtube-dl-wrap.git"
+        "url": "https://github.com/foxesdocode/yt-dlp-wrap.git"
     },
     "keywords": [
         "youtube-dl",
