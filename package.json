@@ -1,25 +1,27 @@
 {
-  "name": "youtube-dl-wrap",
-  "version": "2.1.1",
-  "description": "A simple node.js wrapper for youtube-dl.",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha --timeout 300000",
-    "testDebug": "mocha --inspect-brk --timeout 300000"
-  },
-  "author": "ghjbnm",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ghjbnm/youtube-dl-wrap.git"
-  },
-  "keywords": [
-    "youtube-dl",
-    "youtube-dl-wrapper",
-    "youtube-downloader",
-    "nodejs"
-  ],
-  "license": "MIT",
-  "devDependencies": {
-    "mocha": "^9.1.2"
-  }
+    "name": "yt-dlp-wrap",
+    "version": "2.2.0",
+    "description": "A simple node.js wrapper for yt-dlp.",
+    "main": "index.js",
+    "scripts": {
+        "test": "mocha --timeout 300000",
+        "testDebug": "mocha --inspect-brk --timeout 300000"
+    },
+    "author": "ghjbnm",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ghjbnm/youtube-dl-wrap.git"
+    },
+    "keywords": [
+        "youtube-dl",
+        "youtube-dl-wrapper",
+        "youtube-downloader",
+        "nodejs",
+        "yt-dlp",
+        "yt-dlp-wrapper"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "mocha": "^9.1.2"
+    }
 }
