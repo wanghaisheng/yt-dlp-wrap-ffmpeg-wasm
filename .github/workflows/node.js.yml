@@ -4,27 +4,27 @@
 name: CI tests
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    push:
+        branches: [master]
+    pull_request:
+        branches: [master]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [15.x]
+        strategy:
+            matrix:
+                node-version: [15.x]
 
-    steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: sudo wget https://yt-dl.org/latest/youtube-dl -O /usr/local/bin/youtube-dl
-    - run: sudo chmod a+x /usr/local/bin/youtube-dl
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+        steps:
+            - uses: actions/checkout@v2
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v1
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - run: sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+            - run: sudo chmod a+x /usr/local/bin/yt-dlp
+            - run: npm ci
+            - run: npm run build --if-present
+            - run: npm test
