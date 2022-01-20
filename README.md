@@ -28,7 +28,7 @@ import YTDlpWrap from 'yt-dlp-wrap';
 Javascript
 
 ```javascript
-const YTDlpWrap = require('yt-dlp-wrap');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 
 //Get the data from the github releases API. In this case get page 1 with a maximum of 5 items.
 let githubReleasesData = await YTDlpWrap.getGithubReleases(1, 5);
