@@ -7,7 +7,7 @@
         "build": "tsc",
         "test": "mocha --require ts-node/register --timeout 300000 test/**/*.test.ts",
         "testDebug": "mocha --require ts-node/register --inspect-brk --timeout 300000 test/**/*.test.ts",
-        "postinstall": "npm i && tsc"
+        "install": "tsc"
     },
     "author": "foxes do code",
     "repository": {
