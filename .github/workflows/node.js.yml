@@ -26,6 +26,6 @@ jobs:
                   node-version: ${{ matrix.node-version }}
             - run: sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
             - run: sudo chmod a+x /usr/local/bin/yt-dlp
-            - run: npm ci
+            - run: npm i
             - run: npm run build --if-present
             - run: npm test
