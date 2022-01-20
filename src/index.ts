@@ -76,7 +76,10 @@ export default class YTDlpWrap {
         });
     }
 
-    static async downloadFile(fileURL: string, filePath: string) {
+    static async downloadFile(
+        fileURL: string,
+        filePath: string
+    ): Promise<IncomingMessage | undefined> {
         let currentUrl: string | null = fileURL;
         while (currentUrl) {
             const message: IncomingMessage = await YTDlpWrap.createGetMessage(
@@ -91,7 +94,7 @@ export default class YTDlpWrap {
         }
     }
 
-    static getGithubReleases(page = 1, perPage = 1) {
+    static getGithubReleases(page = 1, perPage = 1): Promise<any> {
         return new Promise<any>((resolve, reject) => {
             const apiURL =
                 'https://api.github.com/repos/yt-dlp/yt-dlp/releases?page=' +
@@ -120,7 +123,7 @@ export default class YTDlpWrap {
         filePath?: string,
         version?: string,
         platform = os.platform()
-    ) {
+    ): Promise<void> {
         const isWin32 = platform == 'win32';
         let fileName = `${executableName}${isWin32 ? '.exe' : ''}`;
         if (!version)
@@ -139,7 +142,7 @@ export default class YTDlpWrap {
         ytDlpArguments: string[] = [],
         options: YTDlpOptions = {},
         abortSignal: AbortSignal | null = null
-    ) {
+    ): YTDlpEventEmitter {
         options = YTDlpWrap.setDefaultOptions(options);
         const execEventEmitter: YTDlpEventEmitter = new EventEmitter();
         const ytDlpProcess = spawn(this.binaryPath, ytDlpArguments, options);
@@ -173,7 +176,7 @@ export default class YTDlpWrap {
         ytDlpArguments: string[] = [],
         options: YTDlpOptions = {},
         abortSignal: AbortSignal | null = null
-    ) {
+    ): YTDlpPromise<string> {
         let ytDlpProcess: ChildProcess | undefined;
         const ytDlpPromise: YTDlpPromise<string> = new Promise(
             (resolve, reject) => {
@@ -200,7 +203,7 @@ export default class YTDlpWrap {
         ytDlpArguments: string[] = [],
         options: YTDlpOptions = {},
         abortSignal: AbortSignal | null = null
-    ) {
+    ): YTDlpReadable {
         const readStream: YTDlpReadable = new Readable({ read(size) {} });
         options = YTDlpWrap.setDefaultOptions(options);
         ytDlpArguments = ytDlpArguments.concat(['-o', '-']);
@@ -228,32 +231,32 @@ export default class YTDlpWrap {
         return readStream;
     }
 
-    async getExtractors() {
+    async getExtractors(): Promise<string[]> {
         let ytDlpStdout = await this.execPromise(['--list-extractors']);
         return ytDlpStdout.split('\n');
     }
 
-    async getExtractorDescriptions() {
+    async getExtractorDescriptions(): Promise<string[]> {
         let ytDlpStdout = await this.execPromise(['--extractor-descriptions']);
         return ytDlpStdout.split('\n');
     }
 
-    async getHelp() {
+    async getHelp(): Promise<string> {
         let ytDlpStdout = await this.execPromise(['--help']);
         return ytDlpStdout;
     }
 
-    async getUserAgent() {
+    async getUserAgent(): Promise<string> {
         let ytDlpStdout = await this.execPromise(['--dump-user-agent']);
         return ytDlpStdout;
     }
 
-    async getVersion() {
+    async getVersion(): Promise<string> {
         let ytDlpStdout = await this.execPromise(['--version']);
         return ytDlpStdout;
     }
 
-    async getVideoInfo(ytDlpArguments: string | string[]) {
+    async getVideoInfo(ytDlpArguments: string | string[]): Promise<any> {
         if (typeof ytDlpArguments == 'string')
             ytDlpArguments = [ytDlpArguments];
         if (
@@ -274,13 +277,16 @@ export default class YTDlpWrap {
         }
     }
 
-    static bindAbortSignal(signal: AbortSignal | null, process: ChildProcess) {
+    static bindAbortSignal(
+        signal: AbortSignal | null,
+        process: ChildProcess
+    ): void {
         signal?.addEventListener('abort', () => {
             process.kill();
         });
     }
 
-    static setDefaultOptions(options: YTDlpOptions) {
+    static setDefaultOptions(options: YTDlpOptions): YTDlpOptions {
         if (!options.maxBuffer) options.maxBuffer = 1024 * 1024 * 1024;
         return options;
     }
@@ -289,14 +295,17 @@ export default class YTDlpWrap {
         code: number | ExecFileException | null,
         processError: Error | null,
         stderrData: string
-    ) {
+    ): Error {
         let errorMessage = '\nError code: ' + code;
         if (processError) errorMessage += '\n\nProcess error:\n' + processError;
         if (stderrData) errorMessage += '\n\nStderr:\n' + stderrData;
         return new Error(errorMessage);
     }
 
-    static emitYoutubeDlEvents(stringData: string, emitter: YTDlpEventEmitter) {
+    static emitYoutubeDlEvents(
+        stringData: string,
+        emitter: YTDlpEventEmitter
+    ): void {
         let outputLines = stringData.split(/\r|\n/g).filter(Boolean);
         for (let outputLine of outputLines) {
             if (outputLine[0] == '[') {
