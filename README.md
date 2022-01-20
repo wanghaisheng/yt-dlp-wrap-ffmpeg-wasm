@@ -19,6 +19,14 @@ You can install yt-dlp-wrap via npm (`npm i yt-dlp-wrap`).
 YT-dlp itself will not be automatically downloaded.  
 Provide it yourself or use some of the following functions to download the binary.
 
+Typescript (only import differs)
+
+```typescript
+import YTDlpWrap from 'yt-dlp-wrap';
+```
+
+Javascript
+
 ```javascript
 const YTDlpWrap = require('yt-dlp-wrap');
 
@@ -48,14 +56,6 @@ Excecute yt-dlp and returns an [EventEmitter](https://nodejs.org/api/events.html
 The `ytDlpEvent` event will expose all yt-dlp events, for example:  
 The log message `[download] Destination: output.mp4` will emit the event type `download` and the event data `Destination: output.mp4`.  
 `ytDlpEmitter.ytDlpProcess` exposes the spawned yt-dlp process.
-
-Typescript (only import differs)
-
-```typescript
-import YTDlpWrap from 'yt-dlp-wrap';
-```
-
-Javascript
 
 ```javascript
 const YTDlpWrap = require('yt-dlp-wrap').default;
