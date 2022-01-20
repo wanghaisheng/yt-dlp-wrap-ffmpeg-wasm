@@ -1,6 +1,6 @@
 # yt-dlp-wrap
 
-This is a fork of the great lib [youtube-dl-wrap](https://github.com/ghjbnm/youtube-dl-wrap), written by [ghjbnm](https://github.com/ghjbnm).
+This is a fork of the great lib [youtube-dl-wrap](https://github.com/ghjbnm/youtube-dl-wrap) (written by [ghjbnm](https://github.com/ghjbnm)) rewritten in TypeScript.
 
 ![](https://github.com/foxesdocode/yt-dlp-wrap/workflows/CI%20tests/badge.svg)
 <a href="https://npmjs.org/package/yt-dlp-wrap" title="View this project on NPM"><img src="https://img.shields.io/npm/v/yt-dlp-wrap.svg" alt="NPM version" /></a>
@@ -11,6 +11,7 @@ A simple node.js wrapper for [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 -   EventEmitter, Promise and Stream interface
 -   Progress events
 -   Utility functions
+-   Typescript Support
 
 ## Installation
 
@@ -48,8 +49,16 @@ The `ytDlpEvent` event will expose all yt-dlp events, for example:
 The log message `[download] Destination: output.mp4` will emit the event type `download` and the event data `Destination: output.mp4`.  
 `ytDlpEmitter.ytDlpProcess` exposes the spawned yt-dlp process.
 
+Typescript (only import differs)
+
+```typescript
+import YTDlpWrap from 'yt-dlp-wrap';
+```
+
+Javascript
+
 ```javascript
-const YTDlpWrap = require('yt-dlp-wrap');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 const ytDlpWrap = new YTDlpWrap('path/to/yt-dlp/binary');
 
 let ytDlpEventEmitter = ytDlpWrap

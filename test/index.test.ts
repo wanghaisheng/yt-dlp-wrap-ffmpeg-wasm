@@ -2,14 +2,14 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 
-const YTDlpWrap = require('..');
+import YTDlpWrap, { YTDlpEventEmitter } from '../src';
 const ytDlpWrap = new YTDlpWrap();
 
 const testVideoPath = 'test/testVideo.mp4';
 const testVideoId = 'C0DPdy98e4c';
 const testVideoURL = 'https://www.youtube.com/watch?v=' + testVideoId;
 
-const isValidVersion = (version) =>
+const isValidVersion = (version: string) =>
     !isNaN(Date.parse(version.substring(0, 10).replace(/\./g, '-')));
 
 const checkFileDownload = function () {
@@ -20,7 +20,7 @@ const checkFileDownload = function () {
     assert(stats.size > 0);
 };
 
-const checkEventEmitter = function (ytDlpEventEmitter) {
+const checkEventEmitter = function (ytDlpEventEmitter: YTDlpEventEmitter) {
     return new Promise((resolve, reject) => {
         let progressDefined = false;
         ytDlpEventEmitter.on('progress', (progressObject) => {
@@ -47,7 +47,7 @@ const checkEventEmitter = function (ytDlpEventEmitter) {
             assert.strictEqual(stats.size, 171516);
             assert(progressDefined);
             assert(ytDlpEventFound);
-            resolve();
+            resolve(undefined);
         });
     });
 };
@@ -91,7 +91,7 @@ describe('AbortController functions', function () {
             controller.signal
         );
         controller.abort();
-        assert(ytDlpEventEmitter.ytDlpProcess.killed);
+        assert(ytDlpEventEmitter.ytDlpProcess?.killed);
     });
 
     it('abort the Readable Stream process', async function () {
@@ -102,7 +102,7 @@ describe('AbortController functions', function () {
             controller.signal
         );
         controller.abort();
-        assert(readableStream.ytDlpProcess.killed);
+        assert(readableStream.ytDlpProcess?.killed);
     });
 
     it('abort the Promise process', async function () {
@@ -113,7 +113,7 @@ describe('AbortController functions', function () {
             controller.signal
         );
         controller.abort();
-        assert(execPromise.ytDlpProcess.killed);
+        assert(execPromise.ytDlpProcess?.killed);
     });
 });
 
