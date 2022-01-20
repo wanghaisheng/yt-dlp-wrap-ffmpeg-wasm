@@ -9,7 +9,7 @@
         "testDebug": "mocha --require ts-node/register --inspect-brk --timeout 300000 test/**/*.test.ts",
         "postinstall": "tsc"
     },
-    "author": "foxesdocode",
+    "author": "foxes do code",
     "repository": {
         "type": "git",
         "url": "https://github.com/foxesdocode/yt-dlp-wrap.git"
