@@ -327,11 +327,16 @@ export default class YTDlpWrap {
         ytDlpProcess.on('error', (error) => (processError = error));
 
         ytDlpProcess.on('close', (code) => {
-            if (code === 0 || ytDlpProcess.killed) readStream.destroy();
-            else
-                readStream.destroy(
-                    YTDlpWrap.createError(code, processError, stderrData)
-                );
+            if (code === 0 || ytDlpProcess.killed){
+                readStream.emit('close');
+                readStream.destroy();
+                readStream.emit('end')
+            }
+            else{
+                const error = YTDlpWrap.createError(code, processError, stderrData)
+                readStream.emit( 'error', error );
+                readStream.destroy( error );
+            }
         });
         return readStream;
     }
