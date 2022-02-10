@@ -329,15 +329,18 @@ export default class YTDlpWrap {
         ytDlpProcess.on('error', (error) => (processError = error));
 
         ytDlpProcess.on('close', (code) => {
-            if (code === 0 || ytDlpProcess.killed){
+            if (code === 0 || ytDlpProcess.killed) {
                 readStream.emit('close');
                 readStream.destroy();
-                readStream.emit('end')
-            }
-            else{
-                const error = YTDlpWrap.createError(code, processError, stderrData)
-                readStream.emit( 'error', error );
-                readStream.destroy( error );
+                readStream.emit('end');
+            } else {
+                const error = YTDlpWrap.createError(
+                    code,
+                    processError,
+                    stderrData
+                );
+                readStream.emit('error', error);
+                readStream.destroy(error);
             }
         });
         return readStream;
@@ -398,7 +401,7 @@ export default class YTDlpWrap {
                 if (os.platform() === 'win32')
                     execSync(`taskkill /pid ${process.pid} /T /F`);
                 else {
-                    execSync(`kill $(pgrep -P ${process.pid})`);
+                    execSync(`pgrep -P ${process.pid} | xargs -L 1 kill`);
                 }
             } catch (e) {
                 // at least we tried
