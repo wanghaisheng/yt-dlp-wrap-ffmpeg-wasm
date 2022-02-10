@@ -1,4 +1,4 @@
-const assert = require('assert');
+import assert from 'assert';
 const fs = require('fs');
 const os = require('os');
 
@@ -14,43 +14,26 @@ const testVideoURL = 'https://www.youtube.com/watch?v=' + testVideoId;
 const isValidVersion = (version: string) =>
     !isNaN(Date.parse(version.substring(0, 10).replace(/\./g, '-')));
 
-const checkFileDownload = function () {
-    assert(fs.existsSync('./' + fileName));
-    if (os.platform() !== 'win32') {
-        fs.chmodSync('./' + fileName, '777');
-    }
-};
-
-const checkEventEmitter = function (
-    ytDlpEventEmitter: YTDlpEventEmitter
-) {
+const checkEventEmitter = function (ytDlpEventEmitter: YTDlpEventEmitter) {
     return new Promise((resolve, reject) => {
         let progressDefined = false;
-        ytDlpEventEmitter.on(
-            'progress',
-            (progressObject) => {
-                if (
-                    progressObject.percent != undefined ||
-                    progressObject.totalSize != undefined ||
-                    progressObject.currentSpeed != undefined ||
-                    progressObject.eta != undefined
-                )
-                    progressDefined = true;
-            }
-        );
+        ytDlpEventEmitter.on('progress', (progressObject) => {
+            if (
+                progressObject.percent != undefined ||
+                progressObject.totalSize != undefined ||
+                progressObject.currentSpeed != undefined ||
+                progressObject.eta != undefined
+            )
+                progressDefined = true;
+        });
 
         let ytDlpEventFound = false;
-        ytDlpEventEmitter.on(
-            'ytDlpEvent',
-            (eventType, eventData) => {
-                if (eventType == 'youtube' && eventData.includes(testVideoId))
-                    ytDlpEventFound = true;
-            }
-        );
+        ytDlpEventEmitter.on('ytDlpEvent', (eventType, eventData) => {
+            if (eventType == 'youtube' && eventData.includes(testVideoId))
+                ytDlpEventFound = true;
+        });
 
-        ytDlpEventEmitter.on('error', (error) =>
-            reject(error)
-        );
+        ytDlpEventEmitter.on('error', (error) => reject(error));
         ytDlpEventEmitter.on('close', () => {
             assert(fs.existsSync(testVideoPath));
             const stats = fs.statSync(testVideoPath);
@@ -65,39 +48,34 @@ const checkEventEmitter = function (
 
 const checkReadableStream = (ytDlpStream: YTDlpReadable) => {
     return new Promise((resolve, reject) => {
-
         let progressDefined = false;
         ytDlpStream.on('progress', (progressObject) => {
-                if (
-                    progressObject.percent != undefined ||
-                    progressObject.totalSize != undefined ||
-                    progressObject.currentSpeed != undefined ||
-                    progressObject.eta != undefined
-                )
-                    progressDefined = true;
-            }
-        );
+            if (
+                progressObject.percent != undefined ||
+                progressObject.totalSize != undefined ||
+                progressObject.currentSpeed != undefined ||
+                progressObject.eta != undefined
+            )
+                progressDefined = true;
+        });
 
         let ytDlpEventFound = false;
-        ytDlpStream.on(
-            'ytDlpEvent',
-            (eventType, eventData) => {
-                if (eventType == 'youtube' && eventData.includes(testVideoId))
-                    ytDlpEventFound = true;
-            }
-        );
-
-        ytDlpStream.on('error', (error) =>{
-            console.log(error)
-            reject(error)
+        ytDlpStream.on('ytDlpEvent', (eventType, eventData) => {
+            if (eventType == 'youtube' && eventData.includes(testVideoId))
+                ytDlpEventFound = true;
         });
-        
+
+        ytDlpStream.on('error', (error) => {
+            console.log(error);
+            reject(error);
+        });
+
         // I think fs.stateSync calls close again
-        let second = false
+        let second = false;
         ytDlpStream.on('close', () => {
-            if(second) resolve(undefined)
+            if (second) resolve(undefined);
             else {
-                second = true
+                second = true;
                 assert(fs.existsSync(testVideoPath));
                 const stats = fs.statSync(testVideoPath);
                 assert.strictEqual(stats.size, 171516);
@@ -107,12 +85,13 @@ const checkReadableStream = (ytDlpStream: YTDlpReadable) => {
             }
         });
     });
-}
+};
 
 describe('downloading yt-dlp binary', function () {
     it('should download from github', async function () {
-        await YTDlpWrap.downloadFromGithub();
-        checkFileDownload();
+        assert.ifError(await YTDlpWrap.downloadFromGithub());
+        assert(fs.existsSync('./' + fileName), 'yt-dlp not downloaded');
+        assert.ifError(fs.accessSync('./' + fileName, fs.constants.X_OK));
     });
 });
 
@@ -135,7 +114,7 @@ describe('download video functions', function () {
             'worst',
         ]);
         readableStream.pipe(fs.createWriteStream(testVideoPath));
-        await checkReadableStream(readableStream)
+        await checkReadableStream(readableStream);
     });
 });
 

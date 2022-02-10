@@ -231,7 +231,7 @@ export default class YTDlpWrap {
         platform = os.platform()
     ): Promise<void> {
         const isWin32 = platform == 'win32';
-        let fileName = `${executableName}${isWin32 ? '.exe' : ''}`;
+        const fileName = `${executableName}${isWin32 ? '.exe' : ''}`;
         if (!version)
             version = (await YTDlpWrap.getGithubReleases(1, 1))[0].tag_name;
         if (!filePath) filePath = './' + fileName;
@@ -241,7 +241,7 @@ export default class YTDlpWrap {
             '/' +
             fileName;
         await YTDlpWrap.downloadFile(fileURL, filePath);
-        isWin32 && fs.chmodSync(filePath, '070');
+        !isWin32 && fs.chmodSync(filePath, '777');
     }
 
     exec(
